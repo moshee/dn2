@@ -1,0 +1,12 @@
+{{ define "404" }}<!doctype html>
+<html>
+  <body>
+    <h1>404 - Not Found</h1>
+    <p>Path: {{ .Path }}</p>
+    {{ if .Err }}
+    <p>Details: {{ .Err }}</p>
+    <pre><code>{{ .Stack }}</code></pre>
+    {{ end }}
+  </body>
+</html>
+{{ end }}

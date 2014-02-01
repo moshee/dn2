@@ -1,0 +1,12 @@
+{{ define "500" }}<!doctype html>
+<html>
+  <body>
+    <h1>500 - Internal Server Error</h1>
+    <p>Path: {{ .Path }}</p>
+    {{ if .Err }}
+    <p>Details: {{ .Err }}</p>
+    <pre><code>{{ .Stack }}</code></pre>
+    {{ end }}
+  </body>
+</html>
+{{ end }}

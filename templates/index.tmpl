@@ -1,0 +1,129 @@
+{{ define "index" }}<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1.0">
+  <meta name="description" content="Manga translations by moshee and co.">
+  <meta name="format-detection" content="telephone=no">
+  <title>manga @ display: none;</title>
+  <link href="//static.displaynone.us:8081/new.css" rel="stylesheet">
+  <link href="http://fonts.googleapis.com/css?family=Exo+2:700,400&amp;subset=latin,latin-ext" rel="stylesheet">
+  <link rel="alternate" type="application/rss+xml" href="/rss">
+</head>
+<body>
+  <header id="header">
+    <h1><code><strong>display:</strong> none;</code></h1>
+    <h2>Scan<sub>s</sub>lation Division</h2>
+    <nav>
+      <ul><li><a href="#manga">Manga</a></li><li><a href="#doujinshi">Doujinshi</a></li></ul>
+    </nav>
+  </header>
+  <aside id="sidebar">
+    <section id="latest-releases">
+      <h1>Latest Releases</h1>
+      {{ range .Latest }}
+      <article class="latest-release">
+        <h2>{{ .Title }}</h2>
+        <div class="release">
+          <img class="thumb" src="//static.displaynone.us:8081/{{ .Shortname }}{{ if eq .Kind 1 }}-{{ .Kind }}{{ .Ordinal }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ .Title }} {{ .Kind }}{{ .Ordinal }}">
+          <a class="dl" target="_blank" href="/get/{{ .Id }}">
+            <span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal }}</span>
+            <ul class="release-info">
+              <li><time datetime="{{ datetime .DateAdded }}">{{ .DateAdded.Format "2 Jan 2006" }}</time></li>
+              <li>{{ .Filesize }}</li>
+              {{ if .NSFW }}<li class="nsfw">NSFW</li>{{ end }}
+            </ul>
+          </a>
+        </div>
+        <div class="release-notes">{{ smarkdown .Notes }}</div>
+      </article>
+      {{ end }}
+    </section>
+    <section id="news">
+      <h1>News</h1>
+      {{ with .News }}
+      <article class="news-post">
+        <h2>{{ .Title }}</h2>
+        <h3><time datetime="{{ datetime .DatePosted }}">{{ .DatePosted.Format "2006-01-02" }}</time></h3>
+        {{ smarkdown .Body }}
+      </article>
+      {{ end }}
+    </section>
+  </aside>
+  <section id="main">
+    <section id="manga">
+      <h1>Manga</h1>
+      {{ range $series := .Series }}{{ if eq .Kind 0 }}
+      <article id="{{ .Shortname }}">
+        <h2>{{ .Title }} <span class="series-status">{{ .Status }}</span></h2>
+        <h3 lang="ja">{{ .NativeTitle }}</h3>
+        <div class="series-notes">{{ smarkdown .Notes }}</div>
+        <ul class="releases">
+          {{ range .Releases }}
+          <li class="release">
+            {{ if ne .Kind 0 }}
+            <img class="cover-img" src="//static.displaynone.us:8081/{{ $series.Shortname }}-{{ .Kind }}{{ .Ordinal }}.jpg" width="160" height="226" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
+            {{ end }}
+            {{ template "release" . }}
+          </li>
+          {{ end }}
+        </ul>
+      </article>
+      {{ end }}{{ end }}
+    </section>
+    <section id="doujinshi">
+      <h1>Doujinshi</h1>
+      {{ range $series := .Series}}{{ if eq .Kind 1 }}
+      <article id="{{ .Shortname }}">
+        <h2>{{ .Title }}</h2>
+        <h3>{{ .NativeTitle }}</h3>
+        {{ with .Releases }}{{ with index . 0 }}
+        <div class="release">
+          <img class="cover-img" src="//static.displaynone.us:8081/{{ $series.Shortname }}.jpg" width="160" height="226" alt="{{ $series.Title }}">
+          {{ template "release" . }} 
+        </div>
+        {{ end }}{{ end }}
+      </article>
+      {{ end }}{{ end }}
+    </section>
+  </section>
+  <footer id="footer">
+    {{ template "footer-stuff" }}
+  </footer>
+</body>
+{{ end }}
+
+{{ define "release" }}
+{{ with .Progress }}
+<span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal }}</span>
+<ul class="release-progress">
+  {{ range . }}
+  <li>
+    <span class="{{ .Job }}"></span>
+    <time class="progress-numbers" datetime="{{ datetime .LastUpdated }}">{{ .Done }}/{{ .Total }}</time>
+    <div class="progress-bar">
+      <div class="progress-bar-inner" width="{{ .Percent }}%"></div>
+    </div>
+  </li>
+  {{ end }}
+</ul>
+{{ else }}
+<a class="dl" target="_blank" href="/get/{{ .Id }}">
+  <span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal }}</span>
+  <ul class="release-info">
+    <li><time datetime="{{ datetime .DateAdded }}">{{ .DateAdded.Format "2 Jan 2006" }}</time></li>
+    <li>{{ .Filesize }}</li>
+    {{ if .NSFW }}<li class="nsfw">NSFW</li>{{ end }}
+  </ul>
+</a>
+{{ end }}
+{{ if and .ISBN.Valid .ISBN.String }}<div class="book-info">
+  <div class="isbn"><strong>ISBN</strong>{{ .ISBN.String }}</div>
+  {{ with .Links }}
+  <ul class="buy-links">
+    {{ range . }}
+    <li><a href="{{ .URL }}">{{ .Name }}</a></li>
+    {{ end }}
+  </ul>
+  {{ end }}
+</div>{{ end }}
+{{ end }}

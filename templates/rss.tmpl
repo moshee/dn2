@@ -1,0 +1,19 @@
+{{ define "rss" }}{{ raw "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" }}
+<rss version="2.0">
+	<channel>
+		<title>display: none; Scan(s)lations</title>
+		<link>http://manga.displaynone.us</link>
+		<description>Manga translation by moshee &amp; co.</description>
+		<pubDate>{{ .Now.Format "Mon, 02 Jan 2006 15:04:05 GMT" }}</pubDate>
+		<webMaster>moshee@displaynone.us (moshee)</webMaster>
+		{{ range .Releases }}
+		<item>
+			<title>{{ .Title }} {{ .Kind }}.{{ .Ordinal }}{{ if .NSFW }} [NSFW]{{ end }} ({{ .Filesize }})</title>
+			<description>{{ if .Notes }}{{ .Notes }}{{ else }}{{ .Title }} {{ .Kind }}.{{ .Ordinal }}{{ end }} (<a href="http://manga.displaynone.us/get/{{ .Id }}">link</a>)</description>
+			<link>http://manga.displaynone.us/</link>
+			<pubDate>{{ .DateAdded.Format "Mon, 02 Jan 2006 15:04:05 GMT" }}</pubDate>
+			<category>{{ .SeriesKind.String }}</category>
+		</item>
+		{{ end }}
+	</channel>
+</rss>{{ end }}
