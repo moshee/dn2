@@ -2,7 +2,6 @@
 package manga
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 )
@@ -97,8 +96,8 @@ type Release struct {
 	SeriesId  int         `sql:"release_series_id"`
 	Kind      ReleaseKind `sql:"release_kind"`
 	Ordinal   int
-	ISBN      sql.NullString
-	Notes     sql.NullString
+	ISBN      string
+	Notes     string
 	Filename  string
 	Filesize  Filesize
 	NSFW      bool
