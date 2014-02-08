@@ -31,7 +31,7 @@ const (
 )
 
 func (r ReleaseKind) String() string {
-	return []string{"c", "v", "", "CD", ""}[r]
+	return []string{"c", "v", "", "cd", ""}[r]
 }
 
 const (
@@ -131,12 +131,16 @@ type Link struct {
 }
 
 type Progress struct {
-	Id          int `sql:"progress_updated"`
+	Id          int `sql:"progress_id"`
 	ReleaseId   int `sql:"progress_release_id"`
 	Job         JobType
 	Done        int
 	Total       int
 	LastUpdated time.Time `sql:"progress_updated"`
+}
+
+func (p *Progress) Percent() float32 {
+	return 100 * float32(p.Done) / float32(p.Total)
 }
 
 type NewsPost struct {

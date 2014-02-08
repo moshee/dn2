@@ -93,16 +93,14 @@
 {{ end }}
 
 {{ define "release" }}
-{{ with .Progress }}
-<span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal | printf "%02d" }}</span>
+{{ if .Progress }}
+<span class="release-kind kind">{{ .Kind }}</span>{{ if .Ordinal }}<span class="release-ord">{{ .Ordinal | printf "%02d" }}{{ end }}</span>
 <ul class="release-progress">
-  {{ range . }}
+  {{ range .Progress }}
   <li>
+    <div class="progress-bar-inner" style="width:{{ .Percent }}%"></div>
     <span class="{{ .Job }}"></span>
     <time class="progress-numbers" datetime="{{ datetime .LastUpdated }}">{{ .Done }}/{{ .Total }}</time>
-    <div class="progress-bar">
-      <div class="progress-bar-inner" width="{{ .Percent }}%"></div>
-    </div>
   </li>
   {{ end }}
 </ul>
