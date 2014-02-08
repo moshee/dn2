@@ -5,7 +5,7 @@
   <meta name="description" content="Manga translations by moshee and co.">
   <meta name="format-detection" content="telephone=no">
   <title>manga @ display: none;</title>
-  <link href="//static.displaynone.us:8081/new.css" rel="stylesheet">
+  <link href="//static.displaynone.us/new.css" rel="stylesheet">
   <link href="http://fonts.googleapis.com/css?family=Exo+2:700,400&amp;subset=latin,latin-ext" rel="stylesheet">
   <link rel="alternate" type="application/rss+xml" href="/rss">
 </head>
@@ -24,7 +24,7 @@
       <article class="latest-release">
         <h2>{{ .Title }}</h2>
         <div class="release">
-          <img class="thumb" src="//static.displaynone.us:8081/{{ .Shortname }}{{ if eq .Kind 1 }}-{{ .Kind }}{{ .Ordinal }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ .Title }} {{ .Kind }}{{ .Ordinal }}">
+          <img class="thumb" src="//static.displaynone.us/{{ .Shortname }}{{ if eq .Kind 1 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ .Title }} {{ .Kind }}{{ .Ordinal }}">
           <a class="dl" target="_blank" href="/get/{{ .Id }}">
             <span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal }}</span>
             <ul class="release-info">
@@ -61,7 +61,7 @@
           {{ range .Releases }}
           <li class="release">
             {{ if ne .Kind 0 }}
-            <img class="cover-img" src="//static.displaynone.us:8081/{{ $series.Shortname }}-{{ .Kind }}{{ .Ordinal }}.jpg" width="160" height="226" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
+            <img class="cover-img" src="//static.displaynone.us/{{ $series.Shortname }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}.jpg" width="160" height="226" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
             {{ end }}
             {{ template "release" . }}
           </li>
@@ -78,7 +78,7 @@
         <h3>{{ .NativeTitle }}</h3>
         {{ with .Releases }}{{ with index . 0 }}
         <div class="release">
-          <img class="cover-img" src="//static.displaynone.us:8081/{{ $series.Shortname }}.jpg" width="160" height="226" alt="{{ $series.Title }}">
+          <img class="cover-img" src="//static.displaynone.us/{{ $series.Shortname }}.jpg" width="160" height="226" alt="{{ $series.Title }}">
           {{ template "release" . }} 
         </div>
         {{ end }}{{ end }}
@@ -94,7 +94,7 @@
 
 {{ define "release" }}
 {{ with .Progress }}
-<span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal }}</span>
+<span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal | printf "%02d" }}</span>
 <ul class="release-progress">
   {{ range . }}
   <li>
@@ -116,8 +116,8 @@
   </ul>
 </a>
 {{ end }}
-{{ if and .ISBN.Valid .ISBN.String }}<div class="book-info">
-  <div class="isbn"><strong>ISBN</strong>{{ .ISBN.String }}</div>
+{{ if .ISBN }}<div class="book-info">
+  <div class="isbn"><strong>ISBN</strong>{{ .ISBN }}</div>
   {{ with .Links }}
   <ul class="buy-links">
     {{ range . }}
