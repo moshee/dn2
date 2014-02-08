@@ -31,7 +31,7 @@ const (
 )
 
 func (r ReleaseKind) String() string {
-	return []string{"c", "v", "", "CD", ""}[r]
+	return []string{"c", "v", "", "cd", ""}[r]
 }
 
 const (
