@@ -443,15 +443,15 @@ func createNews(g *gas.Gas) (int, gas.Outputter) {
 
 	id := -1
 
-	err := gas.Query(&id, `
+	err := gas.DB.QueryRow(`
 	INSERT INTO
-		books.news (
+		manga.news (
 			title,
 			body,
 			date_posted
 		)
 	VALUES ( $1, $2, now() )
-	RETURNING id`, post.Title, post.Body)
+	RETURNING id`, post.Title, post.Body).Scan(&id)
 
 	if err != nil {
 		return 500, gas.JSON(&Error{"updating database", err.Error()})
@@ -468,7 +468,7 @@ func updateNews(g *gas.Gas) (int, gas.Outputter) {
 	}
 
 	_, err := gas.DB.Exec(`
-	UPDATE books.news
+	UPDATE manga.news
 	SET
 		title = $1,
 		body = $2
