@@ -48,9 +48,10 @@ func main() {
 	//router.Get("/series/{id}", getSeries)
 	//router.Get("/series", redirect("/", 302))
 
-	router.Get("/news/{id}", getNews)
+	router.Get("/news/{id}", getNewsId)
 	router.Post("/news/update", updateNews)
 	router.Post("/news/create", createNews)
+	router.Get("/news", getNews)
 
 	router.Post("/release/create", createRelease)
 	router.Get("/release/checkfile/{file}", getCheckFile)
@@ -405,6 +406,19 @@ func getCheckFile(g *gas.Gas) (int, gas.Outputter) {
 }
 
 func getNews(g *gas.Gas) (int, gas.Outputter) {
+	post := new(manga.NewsPost)
+	err := gas.Query(post, `SELECT * FROM manga.news ORDER BY date_posted DESC LIMIT 1`)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 404, gas.JSON(&Error{"no such post", err.Error()})
+		}
+		return 500, gas.JSON(&Error{"reading database", err.Error()})
+	}
+
+	return 200, gas.JSON(post)
+}
+
+func getNewsId(g *gas.Gas) (int, gas.Outputter) {
 	id, err := g.IntArg("id")
 	if err != nil {
 		return 400, gas.JSON(&Error{"bad post id", err.Error()})
