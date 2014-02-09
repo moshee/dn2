@@ -104,9 +104,9 @@
   </footer>
   <script>
     var sec=1000,min=sec*60,hr=min*60,day=hr*24,week=day*7,month=day*30,year=day*365;
-    function p(n,s){n=Math.floor(n);return 'Last updated '+n+' '+s+(n===1?'':'s')+' ago';}
+    function p(n,s){n=Math.floor(n);return ''+n+' '+s+(n===1?'':'s')+' ago';}
     function q(n){if(n<sec)return 'just now';if(n<min)return p(n/sec,'second');if(n<hr)return p(n/min,'minute');if(n<day)return p(n/hr,'hour');if(n<2*week)return p(n/day,'day');if(n<month)return p(n/week,'week');if(n<year)return p(n/month,'month');return p(n/year,'year');}
-    window.addEventListener('load',function(){var t=document.querySelectorAll('time');for (var i=0,el;el=t[i];i++){var time=new Date(el.getAttribute('datetime'));if(time===0){continue;}d=Date.now()-time;if(d){el.setAttribute('title',q(Date.now()-time));}}},true);
+    window.addEventListener('load',function(){var t=document.querySelectorAll('time:not([title])');for(var i=0,el;el=t[i];i++){var time=new Date(el.getAttribute('datetime'));if(time===0)continue;var d=Date.now()-time;if(d){el.setAttribute('title',q(d));}}},true);
   </script>
   <script type="text/javascript">
     var _gaq = _gaq || [];
@@ -141,10 +141,9 @@
   <span class="release-kind kind">{{ .Kind }}</span>{{ if .Ordinal }}<span class="release-ord">{{ .Ordinal | printf "%02d" }}{{ end }}</span>
   <ul class="release-progress">
     {{ range .Progress }}
-    <li>
+    <li class="progress-{{ .Job }}">
       <div class="progress-bar-inner" style="width:{{ .Percent }}%"></div>
-      <span class="{{ .Job }}"></span>
-      <time class="progress-numbers" datetime="{{ datetime .LastUpdated }}">{{ .Done }}/{{ .Total }}</time>
+      <time class="progress-numbers" title="{{ .Job.LongName }} is {{ .Percent | printf "%.0f" }}% done" datetime="{{ datetime .LastUpdated }}">{{ .Done }}/{{ .Total }}</time>
     </li>
     {{ end }}
   </ul>

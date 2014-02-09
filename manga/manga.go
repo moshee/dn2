@@ -56,6 +56,10 @@ func (t JobType) String() string {
 	return []string{"tl", "clean", "letter"}[t]
 }
 
+func (t JobType) LongName() string {
+	return []string{"Translation", "Cleaning", "Lettering"}[t]
+}
+
 type Series struct {
 	Id          int `sql:"series_id"`
 	Title       string
