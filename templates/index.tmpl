@@ -25,14 +25,7 @@
         <h2>{{ .Title }}</h2>
         <div class="release">
           <img class="thumb" src="//static.displaynone.us/{{ .Shortname }}{{ if eq .Kind 1 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ .Title }} {{ .Kind }}{{ .Ordinal }}">
-          <a class="dl" target="_blank" href="/get/{{ .Id }}">
-            <span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal }}</span>
-            <ul class="release-info">
-              <li><time datetime="{{ datetime .DateAdded }}">{{ .DateAdded.Format "2 Jan 2006" }}</time></li>
-              <li>{{ .Filesize }}</li>
-              {{ if .NSFW }}<li class="nsfw">NSFW</li>{{ end }}
-            </ul>
-          </a>
+          {{ template "dl-link" . }}
         </div>
         <div class="release-notes">{{ smarkdown .Notes }}</div>
       </article>
@@ -52,6 +45,26 @@
   <section id="main">
     <section id="manga">
       <h1>Manga</h1>
+      <nav id="series-list">
+        <table>
+          <thead>
+            <tr><th>Title</th><th>Latest release</th></tr>
+          </thead>
+          <tbody>
+            {{ range $series := .Series }}{{ if eq .Kind 0 }}
+            <tr>
+              <td class="series-list-title">
+                <a href="#{{ .Shortname }}">{{ .Title }}</a>
+                <div class="series-status">{{ .Status }}</div>
+              </td>
+              <td class="release">{{ with .LatestRelease }}
+                <img class="thumb" src="//static.displaynone.us/{{ $series.Shortname }}{{ if ne .Kind 0 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
+                {{ template "dl-link" . }}{{ end }}
+              </td>
+            </tr>{{ end }}{{ end }}
+          </tbody>
+        </table>
+      </nav>
       {{ range $series := .Series }}{{ if eq .Kind 0 }}
       <article id="{{ .Shortname }}">
         <h2>{{ .Title }} <span class="series-status">{{ .Status }}</span></h2>
@@ -109,27 +122,7 @@
 {{ end }}
 
 {{ define "release" }}
-{{ if .Progress }}
-<span class="release-kind kind">{{ .Kind }}</span>{{ if .Ordinal }}<span class="release-ord">{{ .Ordinal | printf "%02d" }}{{ end }}</span>
-<ul class="release-progress">
-  {{ range .Progress }}
-  <li>
-    <div class="progress-bar-inner" style="width:{{ .Percent }}%"></div>
-    <span class="{{ .Job }}"></span>
-    <time class="progress-numbers" datetime="{{ datetime .LastUpdated }}">{{ .Done }}/{{ .Total }}</time>
-  </li>
-  {{ end }}
-</ul>
-{{ else }}
-<a class="dl" target="_blank" href="/get/{{ .Id }}">
-  <span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal }}</span>
-  <ul class="release-info">
-    <li><time datetime="{{ datetime .DateAdded }}">{{ .DateAdded.Format "2 Jan 2006" }}</time></li>
-    <li>{{ .Filesize }}</li>
-    {{ if .NSFW }}<li class="nsfw">NSFW</li>{{ end }}
-  </ul>
-</a>
-{{ end }}
+{{ template "release-info" . }}
 {{ if .ISBN }}<div class="book-info">
   <div class="isbn"><strong>ISBN</strong>{{ .ISBN }}</div>
   {{ with .Links }}
@@ -140,4 +133,32 @@
   </ul>
   {{ end }}
 </div>{{ end }}
+{{ end }}
+
+{{ define "release-info" }}
+{{ if .Progress }}
+<div class="unreleased">
+  <span class="release-kind kind">{{ .Kind }}</span>{{ if .Ordinal }}<span class="release-ord">{{ .Ordinal | printf "%02d" }}{{ end }}</span>
+  <ul class="release-progress">
+    {{ range .Progress }}
+    <li>
+      <div class="progress-bar-inner" style="width:{{ .Percent }}%"></div>
+      <span class="{{ .Job }}"></span>
+      <time class="progress-numbers" datetime="{{ datetime .LastUpdated }}">{{ .Done }}/{{ .Total }}</time>
+    </li>
+    {{ end }}
+  </ul>
+</div>
+{{ else }}{{ template "dl-link" . }}{{ end }}
+{{ end }}
+
+{{ define "dl-link" }}
+<a class="dl" target="_blank" href="/get/{{ .Id }}">
+  <span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal }}</span>
+  <ul class="release-info">
+    <li><time datetime="{{ datetime .DateAdded }}">{{ .DateAdded.Format "2 Jan 2006" }}</time></li>
+    <li>{{ .Filesize }}</li>
+    {{ if .NSFW }}<li class="nsfw">NSFW</li>{{ end }}
+  </ul>
+</a>
 {{ end }}

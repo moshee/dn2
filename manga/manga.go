@@ -69,6 +69,25 @@ type Series struct {
 	Releases    []*Release
 }
 
+func (s *Series) LatestRelease() *Release {
+	switch len(s.Releases) {
+	case 1:
+		if rls := s.Releases[0]; rls.Progress == nil {
+			return rls
+		}
+		fallthrough
+	case 0:
+		return nil
+	}
+	latest := s.Releases[0]
+	for _, rls := range s.Releases {
+		if rls.DateAdded.After(latest.DateAdded) && rls.Progress == nil {
+			latest = rls
+		}
+	}
+	return latest
+}
+
 type SeriesList []*Series
 
 func (s SeriesList) Len() int {
