@@ -27,11 +27,13 @@ const (
 	Volume
 	Oneshot
 	DramaCD
+	Episode
+	OVA
 	Other
 )
 
 func (r ReleaseKind) String() string {
-	return []string{"c", "v", "", "cd", ""}[r]
+	return []string{"c", "v", "", "cd", "ep", "ova", ""}[r]
 }
 
 const (

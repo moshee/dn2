@@ -7,15 +7,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
 	"time"
-	"code.google.com/p/go.crypto/sha3"
 
-	"github.com/moshee/gas"
+	"code.google.com/p/go.crypto/sha3"
+	"ktkr.us/pkg/gas"
+	"ktkr.us/pkg/gas/db"
+	"ktkr.us/pkg/gas/out"
 )
 
 const staticDir = http.Dir("/sites/displaynone/static")
@@ -30,15 +33,12 @@ var Env struct {
 
 func main() {
 	if err := gas.EnvConf(&Env, "DISPLAYNONE_"); err != nil {
-		gas.LogFatal("%v", err)
-	}
-	if err := gas.InitDB(); err != nil {
-		gas.LogFatal("InitDB: %v", err)
+		log.Fatal(err)
 	}
 
 	/* TODO: cache the series with a lock
 	gas.Init(func() {
-		series = gas.QueryJoin(...)
+		series = db.QueryJoin(...)
 	})
 	*/
 
@@ -61,11 +61,9 @@ func main() {
 
 	router.Get("/", getIndex)
 
-	gas.New("static.displaynone.us").Get("/{path}", getStatic)
-
 	go proxyListener()
 
-	gas.Ignition(nil)
+	router.Ignition()
 }
 
 func getStatic(g *gas.Gas) (int, gas.Outputter) {
@@ -76,13 +74,13 @@ func getStatic(g *gas.Gas) (int, gas.Outputter) {
 
 func redirect(path string, code int) gas.Handler {
 	return func(g *gas.Gas) (int, gas.Outputter) {
-		return code, gas.Redirect(path)
+		return code, out.Redirect(path)
 	}
 }
 
 func queryLatest(n int) ([]manga.SeriesRelease, error) {
 	s := make([]manga.SeriesRelease, 0, n)
-	err := gas.QueryJoin(&s, `
+	err := db.QueryJoin(&s, `
 		SELECT
 			r.id,
 			s.title,
@@ -122,7 +120,7 @@ func queryLatest(n int) ([]manga.SeriesRelease, error) {
 
 func releaseLinks(s manga.SeriesList) error {
 	links := make([]manga.Link, 0, len(s)*2)
-	err := gas.Query(&links, `
+	err := db.Query(&links, `
 	SELECT
 		id,
 		release_id,
@@ -157,7 +155,7 @@ func releaseLinks(s manga.SeriesList) error {
 
 func getIndex(g *gas.Gas) (int, gas.Outputter) {
 	series := make(manga.SeriesList, 0)
-	if err := gas.QueryJoin(&series, `
+	if err := db.QueryJoin(&series, `
 	SELECT
 		s.id series_id,
 		s.title,
@@ -195,22 +193,22 @@ func getIndex(g *gas.Gas) (int, gas.Outputter) {
 		s.id,
 		r.date_added,
 		p.job`); err != nil {
-		return 500, g.Error(err)
+		return 500, out.Error(g, err)
 	}
 
 	if err := releaseLinks(series); err != nil {
-		return 500, g.Error(err)
+		return 500, out.Error(g, err)
 	}
 
 	sort.Sort(series)
 
 	latest, err := queryLatest(5)
 	if err != nil {
-		return 500, g.Error(err)
+		return 500, out.Error(g, err)
 	}
 
 	news := new(manga.NewsPost)
-	gas.Query(news, `
+	db.Query(news, `
 	SELECT
 		id,
 		title,
@@ -221,7 +219,7 @@ func getIndex(g *gas.Gas) (int, gas.Outputter) {
 	ORDER BY date_posted DESC
 	LIMIT 1`)
 
-	return 200, gas.HTML("index", &struct {
+	return 200, out.HTML("index", &struct {
 		Series manga.SeriesList
 		News   *manga.NewsPost
 		Latest []manga.SeriesRelease
@@ -235,11 +233,11 @@ func getIndex(g *gas.Gas) (int, gas.Outputter) {
 func getRSS(g *gas.Gas) (int, gas.Outputter) {
 	latest, err := queryLatest(10)
 	if err != nil {
-		return 500, g.Error(err)
+		return 500, out.Error(g, err)
 	}
 
 	g.Header().Set("Content-Type", "application/rss+xml")
-	return 200, gas.HTML("rss", &struct {
+	return 200, out.HTML("rss", &struct {
 		Now      time.Time
 		Releases []manga.SeriesRelease
 	}{
@@ -251,7 +249,11 @@ func getRSS(g *gas.Gas) (int, gas.Outputter) {
 func getGet(g *gas.Gas) (int, gas.Outputter) {
 	srv := "us"
 
-	cont, err := geocontinent(g.Request.RemoteAddr)
+	ip := g.Request.Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = g.Request.RemoteAddr
+	}
+	cont, err := geocontinent(ip)
 	if err == nil {
 		switch cont {
 		case "NA", "SA", "OC":
@@ -259,24 +261,27 @@ func getGet(g *gas.Gas) (int, gas.Outputter) {
 		default:
 			srv = "eu"
 		}
+	} else {
+		log.Printf("failed to geolocate %s: %v", ip, err)
 	}
 
 	id, err := g.IntArg("id")
 	if err != nil {
-		return 400, g.Error(err)
+		return 400, out.Error(g, err)
 	}
 	var filename string
-	err = gas.DB.QueryRow(`
+	err = db.DB.QueryRow(`
 	   UPDATE manga.releases
 	      SET hit_count = hit_count+1
 	    WHERE id = $1
 	RETURNING filename`, id).Scan(&filename)
 	if err != nil {
-		return 500, g.Error(err)
+		return 500, out.Error(g, err)
 	}
 
-	url := fmt.Sprintf("http://%s%s/%s", srv, Env.DLServerURL, filename)
-	return 302, gas.Redirect(url)
+	g.SetFilename(filename)
+	u := fmt.Sprintf("http://%s%s/%s", srv, Env.DLServerURL, filename)
+	return 302, out.Redirect(u)
 }
 
 type Error struct {
@@ -287,8 +292,8 @@ type Error struct {
 func createRelease(g *gas.Gas) (int, gas.Outputter) {
 	defer g.Body.Close()
 	if err := g.ParseMultipartForm(0); err != nil {
-		gas.LogWarning("%v", err)
-		return 500, gas.JSON(&Error{"parsing form", err.Error()})
+		log.Print(err)
+		return 500, out.JSON(&Error{"parsing form", err.Error()})
 	}
 
 	/*
@@ -297,7 +302,7 @@ func createRelease(g *gas.Gas) (int, gas.Outputter) {
 			g.MultipartForm.RemoveAll()
 			os.Remove(name)
 			gas.LogWarning("%v", err)
-			return 500, gas.JSON(&Error{"downloading archive", err.Error()})
+			return 500, out.JSON(&Error{"downloading archive", err.Error()})
 		}
 	*/
 	download(g, "archive", Env.FileRoot)
@@ -307,29 +312,29 @@ func createRelease(g *gas.Gas) (int, gas.Outputter) {
 	release := new(manga.Release)
 	blob := []byte(g.FormValue("data"))
 	if err := json.Unmarshal(blob, release); err != nil {
-		gas.LogWarning("%v", err)
-		return 500, gas.JSON(&Error{"decoding json", err.Error()})
+		log.Print(err)
+		return 500, out.JSON(&Error{"decoding json", err.Error()})
 	}
 
 	sid := -1
-	if err := gas.DB.QueryRow(`
+	if err := db.DB.QueryRow(`
 	SELECT id
 	FROM manga.series
 	WHERE id = $1`, release.SeriesId).Scan(&sid); err != nil {
 		if err == sql.ErrNoRows {
-			return 400, gas.JSON(&Error{
+			return 400, out.JSON(&Error{
 				"updating database",
 				fmt.Sprint("Series id %d is not present in the database", release.SeriesId),
 			})
 		} else {
-			gas.LogWarning("%v", err)
-			return 500, gas.JSON(&Error{"updating database", err.Error()})
+			log.Print(err)
+			return 500, out.JSON(&Error{"updating database", err.Error()})
 		}
 	}
 
 	// date_added uses default now()
 	id := -1
-	err := gas.DB.QueryRow(`
+	err := db.DB.QueryRow(`
 	INSERT INTO manga.releases (
 		series_id,
 		kind,
@@ -346,19 +351,19 @@ func createRelease(g *gas.Gas) (int, gas.Outputter) {
 		release.Notes, release.Filename, release.Filesize, release.NSFW).Scan(&id)
 
 	if err != nil {
-		gas.LogWarning("%v", err)
-		return 500, gas.JSON(&Error{"updating database", err.Error()})
+		log.Print(err)
+		return 500, out.JSON(&Error{"updating database", err.Error()})
 	}
 
 	release.Id = id
 
 	if release.Links != nil && len(release.Links) > 0 {
-		tx, err := gas.DB.Begin()
+		tx, err := db.DB.Begin()
 		if err != nil {
-			return 500, gas.JSON(&Error{"updating database", err.Error()})
+			return 500, out.JSON(&Error{"updating database", err.Error()})
 		}
 		for _, link := range release.Links {
-			_, err = gas.DB.Exec(`
+			_, err = db.DB.Exec(`
 			INSERT INTO manga.buy_links (
 				release_id,
 				name,
@@ -366,15 +371,15 @@ func createRelease(g *gas.Gas) (int, gas.Outputter) {
 			)
 			VALUES ( $1, $2, $3 )`, release.Id, link.Name, link.URL)
 			if err != nil {
-				return 500, gas.JSON(&Error{"updating database", err.Error()})
+				return 500, out.JSON(&Error{"updating database", err.Error()})
 			}
 		}
 		if err = tx.Commit(); err != nil {
-			return 500, gas.JSON(&Error{"updating database", err.Error()})
+			return 500, out.JSON(&Error{"updating database", err.Error()})
 		}
 	}
 
-	return 201, gas.JSON(release)
+	return 201, out.JSON(release)
 }
 
 // Assumes parsing form with 0 memory (all to disk)
@@ -393,57 +398,57 @@ func download(g *gas.Gas, field, dest string) (string, error) {
 func getCheckFile(g *gas.Gas) (int, gas.Outputter) {
 	name, err := url.QueryUnescape(g.Arg("file"))
 	if err != nil {
-		return 400, gas.JSON(&Error{"bad filename", err.Error()})
+		return 400, out.JSON(&Error{"bad filename", err.Error()})
 	}
 	file, err := os.Open(filepath.Join(Env.FileRoot, name))
 	if err != nil {
-		return 404, gas.JSON(&Error{"file inaccessible", err.Error()})
+		return 404, out.JSON(&Error{"file inaccessible", err.Error()})
 	}
 	hsh := sha3.NewKeccak256()
 	io.Copy(hsh, file)
 	sum := hex.EncodeToString(hsh.Sum(nil))
-	return 200, gas.JSON(map[string]string{"sha3": sum})
+	return 200, out.JSON(map[string]string{"sha3": sum})
 }
 
 func getNews(g *gas.Gas) (int, gas.Outputter) {
 	post := new(manga.NewsPost)
-	err := gas.Query(post, `SELECT * FROM manga.news ORDER BY date_posted DESC LIMIT 1`)
+	err := db.Query(post, `SELECT * FROM manga.news ORDER BY date_posted DESC LIMIT 1`)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 404, gas.JSON(&Error{"no such post", err.Error()})
+			return 404, out.JSON(&Error{"no such post", err.Error()})
 		}
-		return 500, gas.JSON(&Error{"reading database", err.Error()})
+		return 500, out.JSON(&Error{"reading database", err.Error()})
 	}
 
-	return 200, gas.JSON(post)
+	return 200, out.JSON(post)
 }
 
 func getNewsId(g *gas.Gas) (int, gas.Outputter) {
 	id, err := g.IntArg("id")
 	if err != nil {
-		return 400, gas.JSON(&Error{"bad post id", err.Error()})
+		return 400, out.JSON(&Error{"bad post id", err.Error()})
 	}
 	post := new(manga.NewsPost)
-	err = gas.Query(post, `SELECT * FROM manga.news WHERE id = $1`, id)
+	err = db.Query(post, `SELECT * FROM manga.news WHERE id = $1`, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 404, gas.JSON(&Error{"no such post", err.Error()})
+			return 404, out.JSON(&Error{"no such post", err.Error()})
 		}
-		return 500, gas.JSON(&Error{"reading database", err.Error()})
+		return 500, out.JSON(&Error{"reading database", err.Error()})
 	}
 
-	return 200, gas.JSON(post)
+	return 200, out.JSON(post)
 }
 
 func createNews(g *gas.Gas) (int, gas.Outputter) {
 	post := new(manga.NewsPost)
 	if err := json.NewDecoder(g.Body).Decode(post); err != nil {
-		return 400, gas.JSON(&Error{"bad json", err.Error()})
+		return 400, out.JSON(&Error{"bad json", err.Error()})
 	}
 
 	id := -1
 
-	err := gas.DB.QueryRow(`
+	err := db.DB.QueryRow(`
 	INSERT INTO
 		manga.news (
 			title,
@@ -454,28 +459,28 @@ func createNews(g *gas.Gas) (int, gas.Outputter) {
 	RETURNING id`, post.Title, post.Body).Scan(&id)
 
 	if err != nil {
-		return 500, gas.JSON(&Error{"updating database", err.Error()})
+		return 500, out.JSON(&Error{"updating database", err.Error()})
 	}
 
 	post.Id = id
-	return 201, gas.JSON(post)
+	return 201, out.JSON(post)
 }
 
 func updateNews(g *gas.Gas) (int, gas.Outputter) {
 	post := new(manga.NewsPost)
 	if err := json.NewDecoder(g.Body).Decode(post); err != nil {
-		return 400, gas.JSON(&Error{"bad json", err.Error()})
+		return 400, out.JSON(&Error{"bad json", err.Error()})
 	}
 
-	_, err := gas.DB.Exec(`
+	_, err := db.DB.Exec(`
 	UPDATE manga.news
 	SET
 		title = $1,
 		body = $2
 	WHERE id = $3`, post.Title, post.Body, post.Id)
 	if err != nil {
-		return 500, gas.JSON(&Error{"updating database", err.Error()})
+		return 500, out.JSON(&Error{"updating database", err.Error()})
 	}
 
-	return 200, gas.JSON(post)
+	return 200, out.JSON(post)
 }

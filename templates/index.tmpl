@@ -5,8 +5,7 @@
   <meta name="description" content="Manga translations by moshee and co.">
   <meta name="format-detection" content="telephone=no">
   <title>manga @ display: none;</title>
-  <link href="//static.displaynone.us/new.css" rel="stylesheet">
-  <link href="http://fonts.googleapis.com/css?family=Exo+2:700,400&amp;subset=latin,latin-ext" rel="stylesheet">
+  <link href="//displaynone.us/static/new.css" rel="stylesheet">
   <link rel="alternate" type="application/rss+xml" href="/rss">
 </head>
 <body>
@@ -24,7 +23,7 @@
       <article class="latest-release">
         <h2>{{ .Title }}</h2>
         <div class="release">
-          <img class="thumb" src="//static.displaynone.us/{{ .Shortname }}{{ if eq .Kind 1 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ .Title }} {{ .Kind }}{{ .Ordinal }}">
+          <img class="thumb" src="//displaynone.us/static/{{ .Shortname }}{{ if ne .Kind 0 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ .Title }} {{ .Kind }}{{ .Ordinal }}">
           {{ template "dl-link" . }}
         </div>
         <div class="release-notes">{{ smarkdown .Notes }}</div>
@@ -58,7 +57,7 @@
                 <div class="series-status">{{ .Status }}</div>
               </td>
               <td class="release">{{ with .LatestRelease }}
-                <img class="thumb" src="//static.displaynone.us/{{ $series.Shortname }}{{ if ne .Kind 0 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
+                <img class="thumb" src="//displaynone.us/static/{{ $series.Shortname }}{{ if ne .Kind 0 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
                 {{ template "dl-link" . }}{{ end }}
               </td>
             </tr>{{ end }}{{ end }}
@@ -74,7 +73,7 @@
           {{ range .Releases }}
           <li class="release">
             {{ if ne .Kind 0 }}
-            <img class="cover-img" src="//static.displaynone.us/{{ $series.Shortname }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}.jpg" width="160" height="226" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
+            <img class="cover-img" src="//displaynone.us/static/{{ $series.Shortname }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}.jpg" width="160" height="226" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
             {{ end }}
             {{ template "release" . }}
           </li>
@@ -88,10 +87,10 @@
       {{ range $series := .Series}}{{ if eq .Kind 1 }}
       <article id="{{ .Shortname }}">
         <h2>{{ .Title }}</h2>
-        <h3>{{ .NativeTitle }}</h3>
+        <h3 lang="ja">{{ .NativeTitle }}</h3>
         {{ with .Releases }}{{ with index . 0 }}
         <div class="release">
-          <img class="cover-img" src="//static.displaynone.us/{{ $series.Shortname }}.jpg" width="160" height="226" alt="{{ $series.Title }}">
+          <img class="cover-img" src="//displaynone.us/static/{{ $series.Shortname }}.jpg" width="160" height="226" alt="{{ $series.Title }}">
           {{ template "release" . }} 
         </div>
         {{ end }}{{ end }}
@@ -107,16 +106,22 @@
     function p(n,s){n=Math.floor(n);return ''+n+' '+s+(n===1?'':'s')+' ago';}
     function q(n){if(n<sec)return 'just now';if(n<min)return p(n/sec,'second');if(n<hr)return p(n/min,'minute');if(n<day)return p(n/hr,'hour');if(n<2*week)return p(n/day,'day');if(n<month)return p(n/week,'week');if(n<year)return p(n/month,'month');return p(n/year,'year');}
     window.addEventListener('load',function(){var t=document.querySelectorAll('time:not([title])');for(var i=0,el;el=t[i];i++){var time=new Date(el.getAttribute('datetime'));if(time===0)continue;var d=Date.now()-time;if(d){el.setAttribute('title',q(d));}}},true);
+    window.addEventListener('DOMContentLoaded',function() {
+      var d = document.querySelectorAll('a.dl');
+      for (var i = 0, link; link = d[i]; i++) {
+        link.addEventListener('click', function(e) {
+          ga('send', 'event', 'Downloads', 'Get', e.target.dataset.release);
+        }, false);
+      }
+    }, false);
   </script>
-  <script type="text/javascript">
-    var _gaq = _gaq || [];
-    _gaq.push(['_setAccount', 'UA-38224561-1']);
-    _gaq.push(['_trackPageview']);
-    (function() {
-      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-    })();
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+    ga('create', 'UA-38224561-1', 'auto');
+    ga('send', 'pageview');
   </script>
 </body>
 {{ end }}
@@ -152,8 +157,8 @@
 {{ end }}
 
 {{ define "dl-link" }}
-<a class="dl" target="_blank" href="/get/{{ .Id }}">
-  <span class="release-kind">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal }}</span>
+<a class="dl" target="_blank" href="/get/{{ .Id }}" data-release="{{ .Id }}">
+  <span class="release-kind {{ .Kind }}-release">{{ .Kind }}</span><span class="release-ord">{{ .Ordinal }}</span>
   <ul class="release-info">
     <li><time datetime="{{ datetime .DateAdded }}">{{ .DateAdded.Format "2 Jan 2006" }}</time></li>
     <li>{{ .Filesize }}</li>

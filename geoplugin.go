@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -49,6 +50,7 @@ func geocontinent(ip string) (string, error) {
 		return "", err
 	}
 	if rec.Status > 299 || rec.Status < 200 {
+		log.Println(rec.Status)
 		return "", fmt.Errorf("geoplugin response code is %d", rec.Status)
 	}
 	return rec.ContinentCode, nil

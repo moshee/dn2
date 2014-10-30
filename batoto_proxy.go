@@ -11,7 +11,8 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/moshee/gas"
+	"ktkr.us/pkg/gas"
+	"ktkr.us/pkg/gas/out"
 )
 
 // The actual file contents to be proxied through the server
@@ -94,7 +95,7 @@ func postProxyClient(g *gas.Gas) (int, gas.Outputter) {
 	errChan := <-req.Pipe.Errs
 	err := <-errChan
 	if err != nil {
-		return 500, g.Error(err)
+		return 500, out.Error(g, err)
 	}
 
 	return 204, nil

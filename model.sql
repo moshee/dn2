@@ -56,4 +56,25 @@ CREATE TABLE news (
     date_posted timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE OR REPLACE FUNCTION hitcounter() RETURNS TABLE (
+    title text,
+    unit  text,
+    ordinal int,
+    hit_count int,
+    date_added timestamptz
+) AS $$
+    SELECT
+        s.title,
+        u.units[r.kind+1] unit,
+        r.ordinal,
+		r.hit_count,
+		r.date_added
+    FROM
+        manga.series s,
+		manga.releases r,
+		( SELECT array['Chapter', 'Volume', 'Oneshot', 'CD', 'Other'] units ) u
+    WHERE s.id = r.series_id
+    ORDER BY r.date_added DESC;
+$$
+
 END;
