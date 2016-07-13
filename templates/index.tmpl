@@ -5,7 +5,7 @@
   <meta name="description" content="Manga translations by moshee and co.">
   <meta name="format-detection" content="telephone=no">
   <title>manga @ display: none;</title>
-  <link href="//displaynone.us/static/new.css" rel="stylesheet">
+  <link href="/static/new.css" rel="stylesheet">
   <link rel="alternate" type="application/rss+xml" href="/rss">
 </head>
 <body>
@@ -23,7 +23,7 @@
       <article class="latest-release">
         <h2>{{ .Title }}</h2>
         <div class="release">
-          <img class="thumb" src="//displaynone.us/static/{{ .Shortname }}{{ if ne .Kind 0 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ .Title }} {{ .Kind }}{{ .Ordinal }}">
+          <img class="thumb" src="/static/img/{{ .Shortname }}{{ if ne .Kind 0 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ .Title }} {{ .Kind }}{{ .Ordinal }}">
           {{ template "dl-link" . }}
         </div>
         <div class="release-notes">{{ smarkdown .Notes }}</div>
@@ -57,7 +57,7 @@
                 <div class="series-status">{{ .Status }}</div>
               </td>
               <td class="release">{{ with .LatestRelease }}
-                <img class="thumb" src="//displaynone.us/static/{{ $series.Shortname }}{{ if ne .Kind 0 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
+                <img class="thumb" src="/static/img/{{ $series.Shortname }}{{ if ne .Kind 0 }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}{{ end }}-thumb.jpg" width="64" height="64" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
                 {{ template "dl-link" . }}{{ end }}
               </td>
             </tr>{{ end }}{{ end }}
@@ -73,7 +73,7 @@
           {{ range .Releases }}
           <li class="release">
             {{ if ne .Kind 0 }}
-            <img class="cover-img" src="//displaynone.us/static/{{ $series.Shortname }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}.jpg" width="160" height="226" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
+            <img class="cover-img" src="/static/img/{{ $series.Shortname }}-{{ .Kind }}{{ .Ordinal | printf "%02d" }}.jpg" width="160" height="226" alt="{{ $series.Title }} {{ .Kind }}{{ .Ordinal }}">
             {{ end }}
             {{ template "release" . }}
           </li>
@@ -90,7 +90,7 @@
         <h3 lang="ja">{{ .NativeTitle }}</h3>
         {{ with .Releases }}{{ with index . 0 }}
         <div class="release">
-          <img class="cover-img" src="//displaynone.us/static/{{ $series.Shortname }}.jpg" width="160" height="226" alt="{{ $series.Title }}">
+          <img class="cover-img" src="/static/img/{{ $series.Shortname }}.jpg" width="160" height="226" alt="{{ $series.Title }}">
           {{ template "release" . }} 
         </div>
         {{ end }}{{ end }}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"dn2/manga"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -15,15 +14,18 @@ import (
 	"sort"
 	"time"
 
-	"code.google.com/p/go.crypto/sha3"
+	"golang.org/x/crypto/sha3"
+
 	"ktkr.us/pkg/gas"
 	"ktkr.us/pkg/gas/db"
 	"ktkr.us/pkg/gas/out"
+	"ktkr.us/pkg/sites/dn2/manga"
+	"ktkr.us/pkg/vfs/bindata"
 )
 
-const staticDir = http.Dir("/sites/displaynone/static")
+const staticDir = "/home/moshee/sites/manga.displaynone.us/static"
 
-var fileServer = http.FileServer(staticDir)
+var fileServer = http.StripPrefix("/static", http.FileServer(http.Dir(staticDir)))
 
 var Env struct {
 	FileRoot     string `envconf:"required"`
@@ -36,15 +38,20 @@ func main() {
 		log.Fatal(err)
 	}
 
+	out.TemplateFS(bindata.Root)
+
 	/* TODO: cache the series with a lock
 	gas.Init(func() {
 		series = db.QueryJoin(...)
 	})
 	*/
 
+	os.MkdirAll(staticDir, 0755)
+
 	router := gas.New()
 	router.Get("/rss", getRSS)
 	router.Get("/get/{id}", getGet)
+	router.Get("/static/{name}", getStatic)
 	//router.Get("/series/{id}", getSeries)
 	//router.Get("/series", redirect("/", 302))
 
@@ -257,7 +264,7 @@ func getGet(g *gas.Gas) (int, gas.Outputter) {
 	if err == nil {
 		switch cont {
 		case "NA", "SA", "OC":
-			srv = "us"
+			srv = "us-1"
 		default:
 			srv = "eu"
 		}
@@ -305,9 +312,13 @@ func createRelease(g *gas.Gas) (int, gas.Outputter) {
 			return 500, out.JSON(&Error{"downloading archive", err.Error()})
 		}
 	*/
-	download(g, "archive", Env.FileRoot)
-	download(g, "cover", string(staticDir))
-	download(g, "thumb", string(staticDir))
+	//download(g, "archive", Env.FileRoot)
+	// the client should first upload to the file server and only continue to
+	// this step if it was successful
+	imgDir := filepath.Join(staticDir, "img")
+	os.MkdirAll(imgDir, 0755)
+	download(g, "cover", imgDir)
+	download(g, "thumb", imgDir)
 
 	release := new(manga.Release)
 	blob := []byte(g.FormValue("data"))
@@ -391,6 +402,7 @@ func download(g *gas.Gas, field, dest string) (string, error) {
 
 	file := formFile.(*os.File)
 	path := filepath.Join(dest, fh.Filename)
+	log.Printf("download %s to '%s'", field, path)
 	return path, os.Rename(file.Name(), path)
 }
 
@@ -404,7 +416,7 @@ func getCheckFile(g *gas.Gas) (int, gas.Outputter) {
 	if err != nil {
 		return 404, out.JSON(&Error{"file inaccessible", err.Error()})
 	}
-	hsh := sha3.NewKeccak256()
+	hsh := sha3.New256()
 	io.Copy(hsh, file)
 	sum := hex.EncodeToString(hsh.Sum(nil))
 	return 200, out.JSON(map[string]string{"sha3": sum})

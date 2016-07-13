@@ -15,6 +15,8 @@ import (
 	"ktkr.us/pkg/gas/out"
 )
 
+//go:generate bindata -skip=*.sw[nop] templates
+
 // The actual file contents to be proxied through the server
 type proxiedFile struct {
 	io.ReadCloser
